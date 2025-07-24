@@ -1,4 +1,4 @@
-# 虚拟货币查询工具 🪙
+# 虚拟货币查询工具
 
 一个简洁美观的加密货币价格查询工具，支持实时获取多种数字货币的价格信息。
 
@@ -137,7 +137,7 @@ python test_api.py
 如有问题或建议，请通过以下方式联系：
 
 - 提交 [Issue](https://github.com/你的用户名/crypto-price-checker/issues)
-- 发送邮件至：your.email@example.com
+- 发送邮件至：imacaiy@outlook.com
 
 ---
 
