@@ -1,8 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import requests
+import os
 from datetime import datetime
 
 app = Flask(__name__)
+
+# 生产环境配置
+DEBUG_MODE = os.environ.get('FLASK_ENV') != 'production'
 
 def normalize_symbol(input_symbol):
     """标准化货币代码输入"""
@@ -19,8 +23,18 @@ def normalize_symbol(input_symbol):
         'XRP': 'XRP/USDT',
         'BNB': 'BNB/USDT',
         'SOL': 'SOL/USDT',
-        'MATIC': 'MATIC/USDT'
+        'MATIC': 'MATIC/USDT',
+        'AVAX': 'AVAX/USDT',
+        'DOGE': 'DOGE/USDT',
+        'SHIB': 'SHIB/USDT',
+        'UNI': 'UNI/USDT',
+        'ATOM': 'ATOM/USDT'
     }
+    
+    # 无效输入检查
+    invalid_inputs = ['OKX', 'BINANCE', 'HUOBI', 'COINBASE', 'KRAKEN']
+    if input_symbol in invalid_inputs:
+        return None  # 返回None表示无效输入
     
     # 如果输入已经是交易对格式，直接返回
     if '/' in input_symbol:
@@ -185,28 +199,55 @@ def get_crypto_data(symbol_pair):
     last_error = None
     all_errors = []
     
+    not_found_count = 0  # 统计"未找到"错误的数量
+    
     # 尝试每个API源
     for source_name, api_func in api_sources:
         try:
-            print(f"尝试 {source_name} API...")  # 调试信息
+            if DEBUG_MODE:
+                print(f"尝试 {source_name} API...")  # 调试信息
             data, error = api_func(symbol_pair)
             if data:
-                print(f"✅ {source_name} API成功")  # 调试信息
+                if DEBUG_MODE:
+                    print(f"✅ {source_name} API成功")  # 调试信息
                 return data, None
             else:
-                print(f"❌ {source_name} API失败: {error}")  # 调试信息
+                if DEBUG_MODE:
+                    print(f"❌ {source_name} API失败: {error}")  # 调试信息
                 all_errors.append(f"{source_name}: {error}")
+                
+                # 检查是否是"未找到交易对"的错误
+                if "未找到交易对" in error or "未找到" in error:
+                    not_found_count += 1
+                
                 last_error = error
         except Exception as e:
             error_msg = f"{source_name} API异常: {str(e)}"
-            print(f"❌ {error_msg}")  # 调试信息
+            if DEBUG_MODE:
+                print(f"❌ {error_msg}")  # 调试信息
             all_errors.append(error_msg)
             last_error = error_msg
             continue
     
-    # 如果所有API都失败，返回详细的错误信息
-    print(f"所有API都失败，错误列表: {all_errors}")  # 调试信息
-    return None, f"网络异常：所有数据源暂时不可用。详细错误：{'; '.join(all_errors[:2])}"
+    # 分析错误类型并返回合适的错误信息
+    if DEBUG_MODE:
+        print(f"所有API都失败，错误列表: {all_errors}")  # 调试信息
+    
+    base_symbol = symbol_pair.split('/')[0]
+    
+    # 如果大部分API都返回"未找到"错误，说明是无效的货币代码
+    if not_found_count >= 2:
+        return None, f"抱歉，没有找到 '{base_symbol}' 相关的加密货币。请检查货币代码是否正确，或尝试使用其他常见币种如 BTC、ETH、ADA 等。"
+    
+    # 如果是网络相关错误
+    network_errors = ["timeout", "连接", "网络", "Connection", "Max retries"]
+    has_network_error = any(any(net_err in error for net_err in network_errors) for error in all_errors)
+    
+    if has_network_error:
+        return None, "网络异常：连接不稳定，请检查网络连接后重试。"
+    
+    # 其他错误
+    return None, f"数据获取失败：{last_error}"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -215,18 +256,24 @@ def index():
     
     if request.method == 'POST':
         coin_input = request.form.get('coin', '').strip()
-        print(f"收到查询请求: '{coin_input}'")  # 调试信息
+        if DEBUG_MODE:
+            print(f"收到查询请求: '{coin_input}'")  # 调试信息
         
         if not coin_input:
             error = "请输入货币代码"
         else:
             # 标准化输入
             normalized_symbol = normalize_symbol(coin_input)
-            print(f"标准化后的符号: '{normalized_symbol}'")  # 调试信息
+            if DEBUG_MODE:
+                print(f"标准化后的符号: '{normalized_symbol}'")  # 调试信息
             
-            # 获取数据
-            data, error = get_crypto_data(normalized_symbol)
-            print(f"查询结果: data={bool(data)}, error={error}")  # 调试信息
+            if normalized_symbol is None:
+                error = f"'{coin_input}' 不是有效的加密货币代码。请尝试输入如 BTC、ETH、ADA 等常见币种。"
+            else:
+                # 获取数据
+                data, error = get_crypto_data(normalized_symbol)
+                if DEBUG_MODE:
+                    print(f"查询结果: data={bool(data)}, error={error}")  # 调试信息
     
     return render_template('index.html', data=data, error=error)
 
@@ -242,4 +289,6 @@ def api_crypto(symbol):
     return jsonify(data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # 支持Heroku等云平台的端口配置
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=DEBUG_MODE)
