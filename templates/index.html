@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟货币查询工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+        }
+        
+        .search-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .crypto-card {
+            background: linear-gradient(135deg, #1e2a3a 0%, #2d3b50 100%);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            color: white;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            border: none;
+        }
+        
+        .crypto-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .pair-info {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .pair-symbol {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pair-name {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 5px 0 0 0;
+        }
+        
+        .price-section {
+            padding: 30px 20px 20px;
+            text-align: center;
+        }
+        
+        .current-price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .price-change {
+            font-size: 1.2rem;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .change-positive {
+            background: rgba(0, 200, 83, 0.2);
+            color: #00c853;
+            border: 2px solid rgba(0, 200, 83, 0.3);
+        }
+        
+        .change-negative {
+            background: rgba(255, 55, 95, 0.2);
+            color: #ff375f;
+            border: 2px solid rgba(255, 55, 95, 0.3);
+        }
+        
+        .additional-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 0 20px 25px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .search-form {
+            padding: 30px;
+        }
+        
+        .form-control {
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-search {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .error-alert {
+            background: rgba(255, 55, 95, 0.1);
+            border: 2px solid rgba(255, 55, 95, 0.3);
+            color: #ff375f;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        .last-updated {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #667eea;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .examples {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .example-tag {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 4px 8px;
+            border-radius: 8px;
+            margin: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .example-tag:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h1 class="text-white mb-2">
+                <i class="fas fa-coins me-2"></i>
+                虚拟货币查询工具
+            </h1>
+            <p class="text-white-50">实时获取加密货币价格和市场数据</p>
+        </div>
+        
+        <div class="card search-card">
+            <form method="POST" class="search-form" id="searchForm">
+                <div class="input-group mb-3">
+                    <input type="text" name="coin" class="form-control" 
+                           placeholder="输入货币代码 (例如: BTC, ETH, BTC/USDT)" 
+                           required id="coinInput" autocomplete="off">
+                    <button class="btn btn-search" type="submit">
+                        <i class="fas fa-search me-2"></i>查询
+                    </button>
+                </div>
+                
+                <div class="examples">
+                    <small>示例格式：</small>
+                    <span class="example-tag" onclick="fillExample('BTC')">BTC</span>
+                    <span class="example-tag" onclick="fillExample('ETH/USDT')">ETH/USDT</span>
+                    <span class="example-tag" onclick="fillExample('ada')">ada</span>
+                    <span class="example-tag" onclick="fillExample('SOL')">SOL</span>
+                </div>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="text-white">正在获取数据...</p>
+        </div>
+
+        {% if data %}
+        <div class="card crypto-card">
+            <div class="card-header">
+                <div class="pair-info">
+                    <h3 class="pair-symbol">
+                        <i class="fab fa-bitcoin"></i>
+                        {{ data.symbol }}
+                        {% if data.is_mock %}
+                        <span class="badge bg-warning ms-2">
+                            <i class="fas fa-exclamation-triangle"></i> 模拟
+                        </span>
+                        {% endif %}
+                    </h3>
+                    <p class="pair-name">
+                        {{ data.name }}
+                        <span class="text-muted ms-2">
+                            <i class="fas fa-database"></i> 数据源: {{ data.source }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="price-section">
+                <div class="current-price">{{ data.price_formatted }}</div>
+                <div class="price-change {% if data.change_24h > 0 %}change-positive{% else %}change-negative{% endif %}">
+                    <i class="fas {% if data.change_24h > 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %} me-1"></i>
+                    {{ data.change_formatted }}
+                </div>
+            </div>
+            
+            {% if data.high_24h and data.low_24h %}
+            <div class="additional-info">
+                <div class="info-item">
+                    <div class="info-label">24小时最高</div>
+                    <div class="info-value">${{ "%.2f"|format(data.high_24h) }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">24小时最低</div>
+                    <div class="info-value">${{ "%.2f"|format(data.low_24h) }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="last-updated">
+                <i class="fas fa-clock me-1"></i>
+                最后更新: {{ data.last_updated }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="alert error-alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function fillExample(example) {
+            document.getElementById('coinInput').value = example;
+        }
+        
+        document.getElementById('searchForm').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+        });
+        
+        // 自动隐藏加载动画
+        window.addEventListener('load', function() {
+            document.getElementById('loading').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
