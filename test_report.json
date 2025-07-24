@@ -1,0 +1,58 @@
+{
+  "timestamp": "2025-07-24 20:21:02",
+  "total_tests": 10,
+  "passed": 10,
+  "failed": 0,
+  "results": [
+    {
+      "test": "API服务器连接",
+      "success": true,
+      "message": "Flask服务正常运行"
+    },
+    {
+      "test": "基础Agent查询",
+      "success": true,
+      "message": "BTC价格查询成功"
+    },
+    {
+      "test": "市场概览功能",
+      "success": true,
+      "message": "市场概览获取成功"
+    },
+    {
+      "test": "API端点查询",
+      "success": true,
+      "message": "BTC API查询成功"
+    },
+    {
+      "test": "自然语言处理",
+      "success": true,
+      "message": "5/5 查询成功"
+    },
+    {
+      "test": "MCP配置生成",
+      "success": true,
+      "message": "MCP配置文件生成成功"
+    },
+    {
+      "test": "MCP配置验证",
+      "success": true,
+      "message": "配置文件格式正确"
+    },
+    {
+      "test": "自定义插件",
+      "success": true,
+      "message": "插件支持 3 个功能"
+    },
+    {
+      "test": "插件执行测试",
+      "success": true,
+      "message": "插件功能执行成功"
+    },
+    {
+      "test": "OpenAI Function Calling",
+      "success": true,
+      "message": "函数调用测试成功"
+    }
+  ]
+}

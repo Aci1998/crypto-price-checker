@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "crypto-price-checker": {
+      "command": "python",
+      "args": [
+        "crypto_mcp_server.py"
+      ],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [
+        "query_crypto_price",
+        "get_market_overview",
+        "batch_query_crypto"
+      ]
+    }
+  }
+}
