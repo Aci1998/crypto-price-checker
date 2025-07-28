@@ -49,6 +49,7 @@ python app.py
    - `ADA/BTC` - 自定义交易对
 
 3. 点击查询按钮获取实时价格信息
+<img width="2174" height="1276" alt="图片" src="https://github.com/user-attachments/assets/6ec29312-5b24-4fc9-b8d2-1a96ce57deb7" />
 
 ## 🛠️ 技术栈
 
