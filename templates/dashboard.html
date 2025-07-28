@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密货币技术分析仪表板</title>
+    
+    <!-- 引入Chart.js用于图表展示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- 引入Bootstrap用于样式 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 自定义样式 -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .indicator-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .indicator-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .indicator-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .signal-badge {
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        
+        .signal-bullish {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .signal-bearish {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .signal-neutral {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .signal-overbought {
+            background-color: #fd7e14;
+            color: white;
+        }
+        
+        .signal-oversold {
+            background-color: #20c997;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 1rem 0;
+        }
+        
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.5rem 2rem;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">🚀 加密货币技术分析仪表板</h1>
+                    <p class="mb-0 mt-2">实时技术指标分析与交易信号</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div id="lastUpdate" class="small">
+                        最后更新: --
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label for="symbolSelect" class="form-label">选择币种</label>
+                    <select id="symbolSelect" class="form-select">
+                        <option value="BTC">Bitcoin (BTC)</option>
+                        <option value="ETH">Ethereum (ETH)</option>
+                        <option value="ADA">Cardano (ADA)</option>
+                        <option value="DOT">Polkadot (DOT)</option>
+                        <option value="LINK">Chainlink (LINK)</option>
+                        <option value="LTC">Litecoin (LTC)</option>
+                        <option value="XRP">Ripple (XRP)</option>
+                        <option value="BNB">Binance Coin (BNB)</option>
+                        <option value="SOL">Solana (SOL)</option>
+                        <option value="MATIC">Polygon (MATIC)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="timeframeSelect" class="form-label">时间框架</label>
+                    <select id="timeframeSelect" class="form-select">
+                        <option value="1h">1小时</option>
+                        <option value="4h">4小时</option>
+                        <option value="1d">1天</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="periodSelect" class="form-label">历史周期</label>
+                    <select id="periodSelect" class="form-select">
+                        <option value="7d">7天</option>
+                        <option value="30d" selected>30天</option>
+                        <option value="90d">90天</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button id="analyzeBtn" class="btn btn-primary w-100">
+                        <span id="analyzeText">📊 开始分析</span>
+                        <span id="analyzeSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误消息 -->
+        <div id="errorMessage" class="error-message d-none"></div>
+
+        <!-- 主要指标卡片 -->
+        <div id="indicatorsSection" class="d-none">
+            <div class="row">
+                <!-- RSI -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body indicator-card">
+                            <div class="indicator-label">RSI (14)</div>
+                            <div id="rsiValue" class="indicator-value">--</div>
+                            <div id="rsiSignal" class="signal-badge signal-neutral">中性</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- MACD -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body indicator-card">
+                            <div class="indicator-label">MACD</div>
+                            <div id="macdValue" class="indicator-value">--</div>
+                            <div id="macdSignal" class="signal-badge signal-neutral">中性</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 布林带 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body indicator-card">
+                            <div class="indicator-label">布林带位置</div>
+                            <div id="bbValue" class="indicator-value">--</div>
+                            <div id="bbSignal" class="signal-badge signal-neutral">中性</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 移动平均线 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body indicator-card">
+                            <div class="indicator-label">MA趋势</div>
+                            <div id="maValue" class="indicator-value">--</div>
+                            <div id="maSignal" class="signal-badge signal-neutral">中性</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细指标表格 -->
+        <div id="detailsSection" class="d-none">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📈 详细技术指标</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>指标</th>
+                                        <th>数值</th>
+                                        <th>信号</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="indicatorsTable">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">🎯 综合交易信号</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="overallSignal" class="text-center">
+                                        <div class="indicator-value">分析中...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div id="chartSection" class="d-none">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 价格走势与技术指标</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 性能信息 -->
+        <div id="performanceSection" class="d-none">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">⚡ 性能信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>数据点数:</strong>
+                            <span id="dataPoints">--</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>计算耗时:</strong>
+                            <span id="calculationTime">--</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>分析时间:</strong>
+                            <span id="analysisTime">--</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>状态:</strong>
+                            <span id="analysisStatus" class="badge bg-success">就绪</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentChart = null;
+        let currentData = null;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定事件
+            document.getElementById('analyzeBtn').addEventListener('click', performAnalysis);
+            
+            // 自动执行一次分析
+            performAnalysis();
+        });
+
+        // 执行技术分析
+        async function performAnalysis() {
+            const symbol = document.getElementById('symbolSelect').value;
+            const timeframe = document.getElementById('timeframeSelect').value;
+            const period = document.getElementById('periodSelect').value;
+
+            // 显示加载状态
+            showLoading(true);
+            hideError();
+
+            try {
+                // 调用API
+                const response = await fetch('/api/v1/technical-analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        timeframe: timeframe,
+                        period: period
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 显示结果
+                    displayResults(data);
+                    
+                    // 获取历史数据用于图表
+                    await loadHistoricalData(symbol, timeframe, period);
+                } else {
+                    showError(data.error || '分析失败');
+                }
+
+            } catch (error) {
+                console.error('分析错误:', error);
+                showError('网络错误或服务器异常');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 显示分析结果
+        function displayResults(data) {
+            // 更新主要指标卡片
+            updateIndicatorCards(data.indicators, data.signals);
+            
+            // 更新详细表格
+            updateDetailsTable(data.indicators, data.signals);
+            
+            // 更新性能信息
+            updatePerformanceInfo(data);
+            
+            // 显示各个区域
+            document.getElementById('indicatorsSection').classList.remove('d-none');
+            document.getElementById('detailsSection').classList.remove('d-none');
+            document.getElementById('performanceSection').classList.remove('d-none');
+            
+            // 更新最后更新时间
+            document.getElementById('lastUpdate').textContent = 
+                `最后更新: ${new Date().toLocaleString()}`;
+        }
+
+        // 更新指标卡片
+        function updateIndicatorCards(indicators, signals) {
+            // RSI
+            if (indicators.rsi !== undefined) {
+                document.getElementById('rsiValue').textContent = indicators.rsi.toFixed(2);
+                updateSignalBadge('rsiSignal', signals.rsi);
+            }
+
+            // MACD
+            if (indicators.macd) {
+                const macdValue = indicators.macd.histogram.toFixed(2);
+                document.getElementById('macdValue').textContent = macdValue;
+                updateSignalBadge('macdSignal', signals.macd);
+            }
+
+            // 布林带 (这里简化显示中轨值)
+            if (indicators.bollinger_bands) {
+                const bbValue = indicators.bollinger_bands.middle.toFixed(2);
+                document.getElementById('bbValue').textContent = bbValue;
+                updateSignalBadge('bbSignal', signals.bollinger || 'neutral');
+            }
+
+            // 移动平均线
+            if (indicators.sma_20 && indicators.sma_50) {
+                const trend = indicators.sma_20 > indicators.sma_50 ? '上升' : '下降';
+                document.getElementById('maValue').textContent = trend;
+                const signal = indicators.sma_20 > indicators.sma_50 ? 'bullish' : 'bearish';
+                updateSignalBadge('maSignal', signal);
+            }
+        }
+
+        // 更新信号徽章
+        function updateSignalBadge(elementId, signal) {
+            const element = document.getElementById(elementId);
+            element.className = 'signal-badge';
+            
+            switch(signal) {
+                case 'bullish':
+                    element.classList.add('signal-bullish');
+                    element.textContent = '看涨';
+                    break;
+                case 'bearish':
+                    element.classList.add('signal-bearish');
+                    element.textContent = '看跌';
+                    break;
+                case 'overbought':
+                    element.classList.add('signal-overbought');
+                    element.textContent = '超买';
+                    break;
+                case 'oversold':
+                    element.classList.add('signal-oversold');
+                    element.textContent = '超卖';
+                    break;
+                default:
+                    element.classList.add('signal-neutral');
+                    element.textContent = '中性';
+            }
+        }
+
+        // 更新详细表格
+        function updateDetailsTable(indicators, signals) {
+            const tbody = document.getElementById('indicatorsTable');
+            tbody.innerHTML = '';
+
+            const indicatorList = [
+                { key: 'rsi', name: 'RSI (14)', format: (v) => v.toFixed(2) },
+                { key: 'macd', name: 'MACD', format: (v) => v.macd.toFixed(2) },
+                { key: 'sma_20', name: 'SMA (20)', format: (v) => v.toFixed(2) },
+                { key: 'ema_12', name: 'EMA (12)', format: (v) => v.toFixed(2) },
+                { key: 'stochastic', name: 'Stochastic K', format: (v) => v.k.toFixed(2) },
+                { key: 'williams_r', name: 'Williams %R', format: (v) => v.toFixed(2) },
+                { key: 'cci', name: 'CCI', format: (v) => v.toFixed(2) },
+                { key: 'momentum', name: 'Momentum', format: (v) => v.toFixed(2) }
+            ];
+
+            indicatorList.forEach(indicator => {
+                if (indicators[indicator.key] !== undefined) {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${indicator.name}</td>
+                        <td>${indicator.format(indicators[indicator.key])}</td>
+                        <td><span class="signal-badge signal-neutral">${getSignalText(signals[indicator.key] || 'neutral')}</span></td>
+                    `;
+                }
+            });
+
+            // 更新综合信号
+            updateOverallSignal(signals);
+        }
+
+        // 更新综合信号
+        function updateOverallSignal(signals) {
+            const signalValues = Object.values(signals);
+            const bullishCount = signalValues.filter(s => s === 'bullish').length;
+            const bearishCount = signalValues.filter(s => s === 'bearish').length;
+            
+            let overallSignal = 'neutral';
+            let signalText = '中性';
+            
+            if (bullishCount > bearishCount) {
+                overallSignal = 'bullish';
+                signalText = '看涨';
+            } else if (bearishCount > bullishCount) {
+                overallSignal = 'bearish';
+                signalText = '看跌';
+            }
+
+            const element = document.getElementById('overallSignal');
+            element.innerHTML = `
+                <div class="indicator-value">${signalText}</div>
+                <div class="small text-muted">
+                    看涨信号: ${bullishCount} | 看跌信号: ${bearishCount}
+                </div>
+            `;
+        }
+
+        // 获取信号文本
+        function getSignalText(signal) {
+            const signalMap = {
+                'bullish': '看涨',
+                'bearish': '看跌',
+                'overbought': '超买',
+                'oversold': '超卖',
+                'neutral': '中性'
+            };
+            return signalMap[signal] || '中性';
+        }
+
+        // 更新性能信息
+        function updatePerformanceInfo(data) {
+            document.getElementById('dataPoints').textContent = data.data_points_used;
+            document.getElementById('calculationTime').textContent = `${data.calculation_time_ms.toFixed(2)}ms`;
+            document.getElementById('analysisTime').textContent = new Date(data.timestamp).toLocaleString();
+            document.getElementById('analysisStatus').textContent = '完成';
+        }
+
+        // 加载历史数据并绘制图表
+        async function loadHistoricalData(symbol, timeframe, period) {
+            try {
+                const response = await fetch(`/api/v1/historical-data?symbol=${symbol}&timeframe=${timeframe}&period=${period}`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    drawChart(data.data, symbol);
+                    document.getElementById('chartSection').classList.remove('d-none');
+                }
+            } catch (error) {
+                console.error('加载历史数据失败:', error);
+            }
+        }
+
+        // 绘制价格图表
+        function drawChart(data, symbol) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // 准备数据
+            const labels = data.map(d => new Date(d.timestamp * 1000));
+            const prices = data.map(d => d.close);
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${symbol} 价格`,
+                        data: prices,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    hour: 'MM-dd HH:mm',
+                                    day: 'MM-dd'
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 显示/隐藏加载状态
+        function showLoading(show) {
+            const btn = document.getElementById('analyzeBtn');
+            const text = document.getElementById('analyzeText');
+            const spinner = document.getElementById('analyzeSpinner');
+
+            if (show) {
+                btn.disabled = true;
+                text.textContent = '分析中...';
+                spinner.classList.remove('d-none');
+            } else {
+                btn.disabled = false;
+                text.textContent = '📊 开始分析';
+                spinner.classList.add('d-none');
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = `❌ ${message}`;
+            errorDiv.classList.remove('d-none');
+        }
+
+        // 隐藏错误信息
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('d-none');
+        }
+    </script>
+</body>
+</html>

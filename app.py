@@ -1,12 +1,31 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import os
+import sys
+import asyncio
 from datetime import datetime
+
+# 添加enhanced目录到Python路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'enhanced'))
+
+# 导入技术分析模块
+try:
+    from technical_analysis import TechnicalAnalyzer
+    TECHNICAL_ANALYSIS_AVAILABLE = True
+except ImportError as e:
+    print(f"技术分析模块导入失败: {e}")
+    TECHNICAL_ANALYSIS_AVAILABLE = False
 
 app = Flask(__name__)
 
 # 生产环境配置
 DEBUG_MODE = os.environ.get('FLASK_ENV') != 'production'
+
+# 创建技术分析器实例
+if TECHNICAL_ANALYSIS_AVAILABLE:
+    technical_analyzer = TechnicalAnalyzer()
+else:
+    technical_analyzer = None
 
 def normalize_symbol(input_symbol):
     """标准化货币代码输入"""
@@ -249,6 +268,57 @@ def get_crypto_data(symbol_pair):
     # 其他错误
     return None, f"数据获取失败：{last_error}"
 
+def get_technical_analysis(symbol, current_price=None):
+    """获取技术分析数据"""
+    if not TECHNICAL_ANALYSIS_AVAILABLE or not technical_analyzer:
+        return None
+    
+    try:
+        # 标准化符号格式
+        base_symbol = symbol.split('/')[0] if '/' in symbol else symbol
+        
+        # 使用asyncio运行异步分析
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            result = loop.run_until_complete(
+                technical_analyzer.analyze(
+                    symbol=base_symbol,
+                    timeframe='1h',
+                    period='30d',
+                    current_price=current_price
+                )
+            )
+            
+            # 构建技术分析数据
+            technical_data = {
+                'rsi': result.rsi,
+                'macd': result.macd,
+                'bollinger_bands': result.bollinger_bands,
+                'sma_20': result.sma_20,
+                'sma_50': result.sma_50,
+                'ema_12': result.ema_12,
+                'ema_26': result.ema_26,
+                'stochastic': result.stochastic,
+                'williams_r': result.williams_r,
+                'cci': result.cci,
+                'momentum': result.momentum,
+                'signals': result.get_signals(),
+                'calculation_time_ms': result.calculation_time_ms,
+                'data_points_used': result.data_points_used
+            }
+            
+            return technical_data
+            
+        finally:
+            loop.close()
+            
+    except Exception as e:
+        if DEBUG_MODE:
+            print(f"技术分析失败: {e}")
+        return None
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     data = None
@@ -274,6 +344,16 @@ def index():
                 data, error = get_crypto_data(normalized_symbol)
                 if DEBUG_MODE:
                     print(f"查询结果: data={bool(data)}, error={error}")  # 调试信息
+                
+                # 如果成功获取价格数据，尝试获取技术分析数据
+                if data and not error:
+                    # 传入当前价格用于生成更准确的模拟数据
+                    current_price = data.get('price', None)
+                    technical_data = get_technical_analysis(normalized_symbol, current_price)
+                    if technical_data:
+                        data['technical_analysis'] = technical_data
+                        if DEBUG_MODE:
+                            print("✅ 技术分析数据已添加")
     
     return render_template('index.html', data=data, error=error)
 

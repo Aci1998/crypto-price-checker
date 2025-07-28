@@ -121,5 +121,3 @@ A: 使用 `git filter-branch` 或 BFG Repo-Cleaner
 A: Settings → Manage access → Invite a collaborator
 
 ---
-
-🎉 恭喜！你的虚拟货币查询工具已经成功上传到GitHub！
